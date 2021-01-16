@@ -17,7 +17,7 @@ async function start() {
     "https://rent.591.com.tw/home/search/rsList?is_new_list=1&type=1&kind=2&searchtype=1&region=8&hasimg=1&not_cover=1&section=104,101&rentprice=4000,6600";
   let totalCount = await getList(targetApi, Options);
   let currCount = 0;
-  console.log("總比數:", totalCount);
+  console.log("總筆數:", totalCount);
   while (totalCount > currCount) {
     const tempDetailList = await getList(targetApi, Options, currCount);
     currCount += 30;
@@ -30,6 +30,8 @@ async function start() {
     "耗時:",
     formatAfterTime()
   );
+  const data = await jsonfile.readFile(fileUrl);
+  console.log("資料總筆數:", data.length);
 }
 
 async function getHeader() {
@@ -73,14 +75,14 @@ async function getDetail(simpleData) {
   const readData = await jsonfile.readFile(fileUrl);
   const rule = await ruleFun(simpleData, readData);
   ++count;
+
   if (rule) {
     let data = readData;
     data.push(await requestDetail(id));
     await jsonfile.writeFile(fileUrl, data);
     await delay(500);
-    logDetail(count, id, rule)
+    logDetail(count, id, rule, simpleData);
   }
-  
 
   async function ruleFun(simpleData, readData) {
     let ruleArray = [false, false];
@@ -144,11 +146,28 @@ async function getDetail(simpleData) {
     return detailData;
   }
 
-  function logDetail(count, id, ignore) {
+  function logDetail(count, id, ignore, simpleData) {
     const isIgnore = ignore ? "" : " 跳過";
-    console.log(count, "id:", id, "經過時間:", formatAfterTime(), isIgnore);
+    const updateTime = dayjs(simpleData["updatetime"] * 1000).format(
+      "MM/DD HH:mm:ss"
+    );
+
+    console.log(
+      count,
+      "id:",
+      id,
+      "經過時間:",
+      formatAfterTime(),
+      '上傳時間:',
+      updateTime
+    );
   }
 }
+
+/**
+ * *****************************************************************
+ *
+ */
 
 async function asyncForEach(array, callback) {
   for (let i = 0; i < array.length; i++) {
