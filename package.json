@@ -1,0 +1,15 @@
+{
+  "name": "rent-map",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index"
+  },
+  "dependencies": {
+    "axios": "^0.21.1",
+    "cheerio": "^1.0.0-rc.5",
+    "dayjs": "^1.10.1",
+    "jsonfile": "^6.1.0"
+  }
+}
