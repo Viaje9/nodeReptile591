@@ -14,7 +14,7 @@ async function start() {
   console.log("開始時間", dayjs().format("MM/DD HH:mm:ss"));
   const Options = await getHeader();
   const targetApi =
-    "https://rent.591.com.tw/home/search/rsList?is_new_list=1&type=1&kind=2&searchtype=1&region=8&hasimg=1&not_cover=1&section=104,101&rentprice=4000,6600";
+    "https://rent.591.com.tw/home/search/rsList?is_new_list=1&type=1&kind=2&searchtype=1&region=8&hasimg=1&not_cover=1&section=104,101,105&rentprice=5000,6800";
   let totalCount = await getList(targetApi, Options);
   let currCount = 0;
   console.log("總筆數:", totalCount);
@@ -72,16 +72,19 @@ async function getList(api, Options, row) {
 
 async function getDetail(simpleData) {
   const id = simpleData["post_id"];
-  const readData = await jsonfile.readFile(fileUrl);
+  const readData = await jsonfile.readFile(fileUrl).catch((e) => []);
   const rule = await ruleFun(simpleData, readData);
   ++count;
 
   if (rule) {
     let data = readData;
-    data.push(await requestDetail(id));
-    await jsonfile.writeFile(fileUrl, data);
-    await delay(500);
-    logDetail(count, id, rule, simpleData);
+    const detail = await requestDetail(id);
+    if (Object.keys(detail).length) {
+      data.push(detail);
+      await jsonfile.writeFile(fileUrl, data);
+      await delay(500);
+      logDetail(count, id, rule, simpleData);
+    }
   }
 
   async function ruleFun(simpleData, readData) {
@@ -132,7 +135,15 @@ async function getDetail(simpleData) {
           .replace(/\D{3}$/, "");
         // 租金+管理費
         const totalPrice = price + (isNaN(HOA) ? 0 : HOA);
-        console.log(coord, HOA, totalPrice);
+
+        // 瀏覽次數
+        const browsenum_all = simpleData.browsenum_all;
+
+        // 上架日期
+        const updateTime = dayjs(simpleData["updatetime"] * 1000).format(
+          "YYYY/MM/DD HH:mm:ss"
+        );
+
         detailData = {
           id,
           price,
@@ -140,6 +151,8 @@ async function getDetail(simpleData) {
           phots,
           HOA,
           totalPrice,
+          browsenum_all,
+          updateTime,
         };
       })
       .catch((e) => console.log(e.response, "詳細頁錯誤", id));
@@ -158,8 +171,9 @@ async function getDetail(simpleData) {
       id,
       "經過時間:",
       formatAfterTime(),
-      '上傳時間:',
-      updateTime
+      "上傳時間:",
+      updateTime,
+      simpleData.browsenum_all
     );
   }
 }
