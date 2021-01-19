@@ -142,7 +142,7 @@ async function getDetail(simpleData) {
         // 上架日期
         const updateTime = (function () {
           const time = simpleData["updatetime"] * 1000;
-          const updateTime = dayjs(time).format("YYYY/MM/DD HH:mm:ss");
+          const updateTime = dayjs(time).format("YYYY/MM/DD");
           const fromNow = dayjs(time).fromNow();
           return updateTime + "-" + fromNow;
         })();
