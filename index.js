@@ -140,9 +140,12 @@ async function getDetail(simpleData) {
         const browsenum_all = simpleData.browsenum_all;
 
         // 上架日期
-        const updateTime = dayjs(simpleData["updatetime"] * 1000).format(
-          "YYYY/MM/DD HH:mm:ss"
-        );
+        const updateTime = (function () {
+          const time = simpleData["updatetime"] * 1000;
+          const updateTime = dayjs(time).format("YYYY/MM/DD HH:mm:ss");
+          const fromNow = dayjs(time).fromNow();
+          return updateTime + "-" + fromNow;
+        })();
 
         detailData = {
           id,
