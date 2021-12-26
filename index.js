@@ -14,7 +14,7 @@ async function start() {
   console.log("開始時間", dayjs().format("MM/DD HH:mm:ss"));
   const Options = await getHeader();
   const targetApi =
-    "https://rent.591.com.tw/home/search/rsList?is_new_list=1&type=1&kind=2&searchtype=1&region=8&hasimg=1&not_cover=1&section=104,101,105&rentprice=5000,6800";
+    "https://rent.591.com.tw/home/search/rsList?is_format_data=1&is_new_list=1&type=1&multiPrice=5000_10000&section=27&searchtype=1&kind=2";
   let totalCount = await getList(targetApi, Options);
   let currCount = 0;
   console.log("總筆數:", totalCount);
@@ -28,7 +28,7 @@ async function start() {
     "結束時間",
     dayjs().format("MM/DD HH:mm:ss"),
     "耗時:",
-    formatAfterTime()
+    formatAfterTime(),
   );
   const data = await jsonfile.readFile(fileUrl);
   console.log("資料總筆數:", data.length);
@@ -41,7 +41,10 @@ async function getHeader() {
     .get("https://rent.591.com.tw/")
     .then((res) => {
       const $ = cheerio.load(res.data, null, false);
-      Cookie = res.headers["set-cookie"].join(";");
+      const session591 = res.headers["set-cookie"].find((txt) =>
+        txt.includes("591_new_session"),
+      );
+      Cookie = `new_rent_list_kind_test=0; urlJumpIp=3; ${session591}`;
       Token = $("meta[name=csrf-token]").attr("content");
       res.data = "";
     })
@@ -55,6 +58,7 @@ async function getHeader() {
   };
 }
 
+// 取得ID清單or物件總數
 async function getList(api, Options, row) {
   const url = !isNaN(row) ? api + "&firstRow=" + row : api;
   let totalCount;
@@ -62,7 +66,7 @@ async function getList(api, Options, row) {
   await axios
     .get(url, Options)
     .then((res) => {
-      totalCount = +res.data.records.replace(",", "");
+      totalCount = +`${res.data.records}`.replace(",", "");
       list = res.data.data.data;
     })
     .catch((e) => console.log(e));
@@ -75,7 +79,6 @@ async function getDetail(simpleData) {
   const readData = await jsonfile.readFile(fileUrl).catch((e) => []);
   const rule = await ruleFun(simpleData, readData);
   ++count;
-
   if (rule) {
     let data = readData;
     const detail = await requestDetail(id);
@@ -93,9 +96,8 @@ async function getDetail(simpleData) {
     ruleArray[1] = (function () {
       const updateTime = simpleData["updatetime"] * 1000;
       const yesterday = dayjs().subtract(2, "day");
-      return dayjs(updateTime).isAfter(yesterday);
+      return true || dayjs(updateTime).isAfter(yesterday);
     })();
-
     return ruleArray.every((e) => e);
   }
 
@@ -125,7 +127,7 @@ async function getDetail(simpleData) {
           .split(",");
         // 照片
         const phots = Array.from(detailBody$(".leftBox li img")).map((e) =>
-          detailBody$(e).attr("src").replace("125x85", "765x517")
+          detailBody$(e).attr("src").replace("125x85", "765x517"),
         );
         // 管理費
         const HOA = +detailBody$(".clearfix.labelList.labelList-1 li .two")
@@ -165,7 +167,7 @@ async function getDetail(simpleData) {
   function logDetail(count, id, ignore, simpleData) {
     const isIgnore = ignore ? "" : " 跳過";
     const updateTime = dayjs(simpleData["updatetime"] * 1000).format(
-      "MM/DD HH:mm:ss"
+      "MM/DD HH:mm:ss",
     );
 
     console.log(
@@ -176,7 +178,7 @@ async function getDetail(simpleData) {
       formatAfterTime(),
       "上傳時間:",
       updateTime,
-      simpleData.browsenum_all
+      simpleData.browsenum_all,
     );
   }
 }
